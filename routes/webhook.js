@@ -26,22 +26,35 @@ router.post('/', express.raw({ type: '*/*' }), async (req, res) => {
     body = JSON.parse(rawBody.toString('utf8'));
   } catch {
     logger.warn('Received invalid JSON body from TikTok');
-    return res.status(400).json({ error: 'Invalid JSON body' });
+    return res.status(200).json({ status: 'ignored', reason: 'invalid JSON' });
   }
 
-  const businessId = body?.business_id || body?.data?.business_id;
+  // Log full payload so we can see exactly what TikTok sends
+  logger.info('TikTok webhook received', { payload: JSON.stringify(body), headers: req.headers });
+
+  // Extract business_id — TikTok may use different field names
+  const businessId =
+    body?.business_id ||
+    body?.data?.business_id ||
+    body?.sender?.business_id ||
+    body?.app_id ||          // some TikTok events use app_id
+    body?.data?.app_id ||
+    null;
+
+  // No business_id — could be a test ping, return 200 so TikTok doesn't reject the webhook
   if (!businessId) {
-    logger.warn('Missing business_id in TikTok webhook body');
-    return res.status(400).json({ error: 'Missing business_id in request body' });
+    logger.warn('Missing business_id — returning 200 to accept webhook', { body });
+    return res.status(200).json({ status: 'received', note: 'no business_id found' });
   }
 
   const account = getAccountByTikTokBusinessId(businessId);
   if (!account) {
     logger.warn(`No account configured for business_id: ${businessId}`);
-    return res.status(404).json({ error: `No account configured for business_id: ${businessId}` });
+    // Return 200 so TikTok doesn't keep retrying — just log it
+    return res.status(200).json({ status: 'received', note: `no account for ${businessId}` });
   }
 
-  // Verify HMAC signature if app secret is a real value
+  // Verify HMAC signature if app secret is configured
   const isPlaceholder = !account.tiktokAppSecret || account.tiktokAppSecret.startsWith('TIKTOK_APP_SECRET');
   if (!isPlaceholder) {
     const valid = verifySignature(rawBody, signature, account.tiktokAppSecret);
@@ -51,11 +64,12 @@ router.post('/', express.raw({ type: '*/*' }), async (req, res) => {
     }
   }
 
-  const eventType = body?.event_type || body?.type || '';
+  const eventType = body?.event_type || body?.type || body?.data?.type || '';
   const hasMessage = body?.message || body?.data?.message;
 
+  // Return 200 for non-message events (test pings, status events, etc.)
   if (eventType !== 'MESSAGE' && eventType !== 'message' && !hasMessage) {
-    logger.info(`Ignored non-message event`, { account: businessId, eventType });
+    logger.info('Ignored non-message event', { account: businessId, eventType });
     return res.status(200).json({ status: 'ignored', eventType });
   }
 
@@ -76,7 +90,6 @@ router.post('/', express.raw({ type: '*/*' }), async (req, res) => {
     const result = await sendInboundMessage(account.genesys, event);
     const genesysConversationId = result?.id || result?.conversation?.id;
 
-    // Store mapping so agent replies can be routed back to TikTok
     if (genesysConversationId && event.conversationId) {
       conversationStore.set(genesysConversationId, {
         tiktokConversationId: event.conversationId,
@@ -92,11 +105,9 @@ router.post('/', express.raw({ type: '*/*' }), async (req, res) => {
 
     return res.status(200).json({ status: 'ok', genesysId: genesysConversationId });
   } catch (err) {
-    const status = err.response?.status || 500;
     const detail = err.response?.data || err.message;
     logger.error('Failed to forward message to Genesys', {
       account: businessId,
-      status,
       detail,
       stack: err.stack,
     });
