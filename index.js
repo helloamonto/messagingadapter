@@ -20,6 +20,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve TikTok domain verification file
+app.use(express.static('public'));
+
 app.use('/webhook', webhookRouter);
 app.use('/genesys', genesysRouter);
 
