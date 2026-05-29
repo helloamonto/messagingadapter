@@ -1,0 +1,36 @@
+[
+  {
+    "id": "brand_a",
+    "tiktok": {
+      "clientKey": "your_tiktok_client_key_for_brand_a",
+      "clientSecret": "your_tiktok_client_secret_for_brand_a",
+      "businessId": "your_tiktok_business_id_for_brand_a",
+      "webhookVerifyToken": "a_random_secret_string_brand_a"
+    },
+    "genesys": {
+      "clientId": "your_genesys_oauth_client_id_brand_a",
+      "clientSecret": "your_genesys_oauth_client_secret_brand_a",
+      "baseUrl": "https://api.mypurecloud.com",
+      "integrationId": "your_genesys_integration_id_brand_a",
+      "webhookSecret": "your_genesys_outbound_webhook_secret_brand_a"
+    },
+    "commentPollCron": "*/2 * * * *"
+  },
+  {
+    "id": "brand_b",
+    "tiktok": {
+      "clientKey": "your_tiktok_client_key_for_brand_b",
+      "clientSecret": "your_tiktok_client_secret_for_brand_b",
+      "businessId": "your_tiktok_business_id_for_brand_b",
+      "webhookVerifyToken": "a_random_secret_string_brand_b"
+    },
+    "genesys": {
+      "clientId": "your_genesys_oauth_client_id_brand_b",
+      "clientSecret": "your_genesys_oauth_client_secret_brand_b",
+      "baseUrl": "https://api.mypurecloud.com",
+      "integrationId": "your_genesys_integration_id_brand_b",
+      "webhookSecret": "your_genesys_outbound_webhook_secret_brand_b"
+    },
+    "commentPollCron": "*/5 * * * *"
+  }
+]
