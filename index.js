@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const logger = require('./services/logger');
 const webhookRouter = require('./routes/webhook');
 const genesysRouter = require('./routes/genesys');
@@ -21,7 +22,7 @@ app.use((req, res, next) => {
 });
 
 // Serve TikTok domain verification file
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/webhook', webhookRouter);
 app.use('/genesys', genesysRouter);
